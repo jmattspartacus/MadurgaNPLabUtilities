@@ -13,6 +13,8 @@
 
 # Support and maintenance NOT GUARANTEED
 
+# Requires Julia 1.7 or higher
+
 ### Dr. Miguel Madurga, University of Tennessee (2021)
 
 using Pkg
