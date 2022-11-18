@@ -114,5 +114,186 @@ end
 
 # last plot needed to force overlay from for-loops (the loop exists with null, that is, no plot!)
 plot!(p)
-savefig("test.pdf")
+#savefig("test.pdf")
 
+
+struct UncertainValue
+    value::Float64  # value
+    #unc::Float     # uncertainty
+    units::String   # units of the value
+end
+
+struct State
+    energy::Float64          # Energy of the state in keV 
+    halflife::UncertainValue
+
+    line_width::Int64        # Width used to draw the line for the label
+    line_color::Symbol       # The color used for the line
+
+    label_font::Plots.Font   # Font for the text of the label
+    spin_label::String       # Label text for the State's spin parity (2+, etc)
+end
+
+struct Isotope
+    mass_number::Int64       # mass of the Isotope being drawn
+    z::Int64                 # Proton number of the Nucleus
+    symbol::String           # Elemental symbol for this Isotope
+    symbol_font::Plots.Font  # the font for displaying the isotope label
+    levels::Vector{State}    # Levels that this Nuclei has for this scheme
+
+    # all energies are given in keV
+    Sn::Float64              # Neutron Separation energy
+    S2n::Float64             # 2 Neutron Separation energy
+    Sp::Float64              # Proton Separation energy
+    S2p::Float64             # 2 Proton Separation energy
+    
+    Qbeta_minus::Float64     # Energy available for beta - decay in
+    Qbetabeta_minus::Float64 # Energy available for double beta - decay
+    
+    Qbeta_n::Float64         # Energy available for beta delayed neutron emission
+    Qbeta_2n::Float64        # Energy available for beta delayed neutron emission
+    
+    Qalpha::Float64          # Energy available for alpha decay
+    
+    Qbeta_plus::Float64      # Energy available for beta + decay
+    Qbetabeta_plus::Float64  # Energy available for double beta + decay
+    
+    Qec::Float64             # Energy available for electron capture
+    Q2ec::Float64            # Energy available for double electron capture
+    
+end
+
+struct Transition
+    label::String          # the label for the transition
+    label_font::Plots.Font # Font used for the Transition label
+    
+    mother::Isotope        # Mother Nucleus for the Transition
+    from::State            # Mother state for the Transition
+
+    daughter::Isotope      # Daughter Nucleus for the Transition
+    to::State              # Daughter state for the Transition
+end
+
+
+default_font = Plots.font(9,"helvetica",:right,:black)
+
+
+
+Mg32states = [
+    State(0,     UncertainValue(86,   "ms"), 3, :black, default_font, L"0^+")
+    State(885.3, UncertainValue(11.4, "ps"), 1, :black, default_font, L"2^+")
+    State(1058,  UncertainValue(7,    "ns"), 1, :black, default_font, L"0^+")
+]
+
+Mg32 = Isotope(32, 12, "Mg", Mg32states, 0,0,0,0,0,0,0,0,0,0,0,0,0)
+
+Al32states = [
+    State(0,     UncertainValue(33,   "ms"), 3, :black, default_font, L"1^+")
+    State(734.7, UncertainValue(0,    "ps"), 1, :black, default_font, L"(2^+)")
+    State(956.6, UncertainValue(200,  "ns"), 1, :black, default_font, L"(4^+)")
+]
+
+Al32 = Isotope(32, 13, "Al", Al32states,0,0,0,0,0,0,0,0,0,0,0,0,0)
+
+nuclei_keys = ["Mg32", "Al32"] # build this list to define the order we draw the bands for the nuclei
+
+nuclei      = Dict([("Mg32", Mg32), ("Al32", Al32)]) 
+
+
+
+transitions = [
+    Transition("", default_font, nuclei["Mg32"], Mg32states[3], nuclei["Mg32"], Mg32states[2])
+    Transition("", default_font, nuclei["Mg32"], Mg32states[2], nuclei["Mg32"], Mg32states[1])
+    Transition("", default_font, nuclei["Al32"], Al32states[3], nuclei["Al32"], Al32states[2])
+    Transition("", default_font, nuclei["Al32"], Al32states[2], nuclei["Al32"], Al32states[1])
+]
+
+# get the highest energy level we specify because this sets the scale for the plot
+global highestlevel = 0
+for i in transitions
+    if i.from.energy > highestlevel
+        global highestlevel = i.from.energy
+    end
+    if i.daughter.Sn > highestlevel
+        global highestlevel = i.daughter.Sn
+    end
+end
+
+# load the data file
+stringobj = ""
+open("testscheme.json") do f
+    for line in readlines(f)
+        global stringobj = stringobj * line 
+    end
+end
+
+# parse to a dict object so we can build the objects from it
+data = JSON.parse(stringobj)
+top_level_required_keys = [
+    "config", "isotopes", "fonts", "band_order", "transitions"
+]
+present_keys = keys(data)
+for i in top_level_required_keys
+    if !(i in present_keys)
+        println("Missing key '", i, "' in supplied json, aborting")
+        exit()
+    end
+end
+
+# these are the minimum keys we need to build a nucleus, if they're not
+# present in the JSON, the program exits early
+nucleus_required_keys = [
+    "mass_number", "z", "symbol", "states"
+]
+# These keys are optional, if missing, they're initialized to zero
+nucleus_optional_keys = [
+    "Sn", "S2n", "Sp", "S2p", "Qbeta_minus", "Qbetabeta_minus", "Qbeta_n", "Qbeta_2n",
+    "Qalpha", "Qbeta_plus", "Qbetabeta_plus", "Qec", "Q2ec"
+]
+state_required_keys = [
+    "name", "energy", "spin_label"
+]
+state_optional_keys = [
+
+]
+isotopes = Dict{String, Isotope}()
+for i in data["isotopes"]
+    t_keys = keys(i.second)
+    for j in nucleus_required_keys
+        if !(j in t_keys)
+            t_str = i.first
+            println("Isotope '$t_str' missing required key $j")
+            exit()
+        end
+    end
+    t_dict = i.second
+    # build an args list to unpack and pass 
+    args = Vector{Any}(
+        t_dict["mass_number"], t_dict["z"], t_dict["symbol"]
+    )
+    # build the states
+    states = Vector{State}()
+    for state in i.second["states"]
+        # check for required keys
+
+        # check for optional keys that can be filled in automatically
+
+        # fill in special case fields
+
+        # construct state
+
+        # add to states
+        
+    end
+
+    # build up the list of optional arguments
+    for key in nucleus_optional_keys
+        if i in t_keys
+            
+        else
+
+        end
+    end
+    isotopes[i.first] = Isotope(args...)
+    
+end

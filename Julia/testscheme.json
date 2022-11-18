@@ -21,34 +21,30 @@
     "band_order":["32Mg", "32Al"],
     "isotopes":{
         "32Mg":{
-            "isotope":{
-                "mass":32,
-                "z":12,
-                "symbol":"Mg",
-                "Sn":5778,
-                "Qbeta":10270,
-                "mass_excess":829
-            },
+            "mass_number":32,
+            "z":12,
+            "symbol":"Mg",
+            "Sn":5778,
+            "Qbeta":10270,
+            "mass_excess":829,
             "states":[
-                {"energy":0, "energy_unit":"keV",      "halflife":86,   "halflife_unit":"ms", "spin_label":"0^+"},
-                {"energy":885.3, "energy_unit":"keV",  "halflife":11.4, "halflife_unit":"ps", "spin_label":"2^+"},
-                {"energy":1058, "energy_unit":"keV",   "halflife":7,    "halflife_unit":"ns", "spin_label":"0^+"}
+                {"name": "GS",  "energy":0,     "halflife":86,   "halflife_unit":"ms", "spin_label":"0^+"},
+                {"name": "fes", "energy":885.3, "halflife":11.4, "halflife_unit":"ps", "spin_label":"2^+"},
+                {"name": "ses", "energy":1058,  "halflife":7,    "halflife_unit":"ns", "spin_label":"0^+"}
             ]
         },
         "Al32":{
-            "isotope":{
-                "mass":32,
-                "z":13,
-                "symbol":"Al",
-                "Sn":4220,
-                "Qbeta":12978,
-                "mass_excess":-11099,
-                "label_font":"nucleus"
-            },
+            "mass_number":32,
+            "z":13,
+            "symbol":"Al",
+            "Sn":4220,
+            "Qbeta":12978,
+            "mass_excess":-11099,
+            "label_font":"nucleus",
             "states":[
-                {"name": "GS", "energy":0,     "energy_unit":"keV", "halflife":33,  "halflife_unit":"ms", "spin_label":"1^+"},
-                {"name": "fes", "energy":737.4, "energy_unit":"keV", "halflife":0,   "halflife_unit":"ps", "spin_label":"(2^+)"},
-                {"name": "ses", "energy":956.6, "energy_unit":"keV", "halflife":200, "halflife_unit":"ns", "spin_label":"(4^+)"}
+                {"name": "GS",  "energy":0,     "halflife":33,  "halflife_unit":"ms", "spin_label":"1^+"},
+                {"name": "fes", "energy":737.4, "halflife":0,   "halflife_unit":"ps", "spin_label":"(2^+)"},
+                {"name": "ses", "energy":956.6, "halflife":200, "halflife_unit":"ns", "spin_label":"(4^+)"}
             ]
         }
     },
